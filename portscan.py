@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-
 from util import Parser
+from util import FileManager
 from core import port_scan
 import sys
 
@@ -29,11 +29,20 @@ def main():
     parser = Parser()
     arguments = parser.run(sys.argv[1:])
 
+    output = FileManager()
+
     if arguments.quiet is False:
         print_banner()
         print_version()
 
-    port_scan(arguments.host)
+    if arguments.output:
+        if output.create(arguments.output) is False:
+            print(f"[!] File name already exists! ({arguments.output})")
+            sys.exit(1)
+        else:
+            print(f"[*] Writing output to {arguments.output}")
+
+    port_scan(arguments.host, output)
 
 
 if __name__ == '__main__':

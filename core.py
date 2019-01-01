@@ -3,17 +3,17 @@ import socket
 import subprocess
 
 
-def staged_nmap(ip_address):
-    ip_address = ip_address.strip()
+def staged_nmap(ip_address, output):
+    """
+    Stage 1: Open Port Scan For Common TCP Ports + Light Version Detection
 
+    """
     print("[+] Starting quick nmap scan for %s" % ip_address)
-
     QUICKSCAN = "nmap -Pn -sV --version-light --min-rate=3000 %s" % (ip_address)
     quickresults = subprocess.check_output(QUICKSCAN, shell=True).decode("utf-8")
 
     # parse ports only
     ports = [_ for _ in quickresults.split() if '/tcp' in _]
-
     # parse ports and services
     quickresults = '\n| '.join( quickresults.split('\n')[4:-4] )
     quickresults = '\n%s\n\\%s...\n' % (quickresults, "_" * 16)
@@ -21,10 +21,12 @@ def staged_nmap(ip_address):
     print("[*] TCP quick scans completed for %s" % ip_address)
     print("[*] Total number of ports discovered for TCP: %d" % len(ports))
     print(quickresults)
-    
 
+    """
+    Stage 2: Open Port Scan For All 65535 TCP Ports
+
+    """
     print("[+] Starting full port scan for TCP (range: 1-65535)")
-
     FULLTCP = "nmap -Pn -p- -T4 --min-rate=3000 %s" % (ip_address)
     fulltcp_results = subprocess.check_output(FULLTCP, shell=True).decode("utf-8")
 
@@ -33,12 +35,16 @@ def staged_nmap(ip_address):
         if '/tcp' in _:
             ports.append(_)
     ports = list(set(ports))
-
     portlist = ",".join([p.rstrip("/tcp") for p in ports])
 
     print("[*] TCP full port scan completed")
     print("[*] Total number of ports discovered for TCP: %d" % len(ports))
+    
+    """
+    Stage 3: Run Default NSE Scripts + Version Detection Against Ports Found From Stage 2
 
+    """
+    output.append(f"TCP port scan result for {ip_address}:\n")
     if len(ports) > 0:
         print("[+] Starting service enumeration for TCP ports: %s" % portlist)
         ENUMTCP = "nmap -Pn -p '%s' -sC -sV --min-rate=1500 %s" % (portlist, ip_address)
@@ -51,11 +57,15 @@ def staged_nmap(ip_address):
 
         print("[*] Enumeration for TCP ports finished")
         print(enumtcp_results)
-
+        output.append(enumtcp_results)
+        output.append("\n\n")
     else:
         print("[-] Skipping TCP service enumeration due to no open ports found")
 
+    """
+    Stage 4: Open Port Scan For All 65535 UDP Ports
 
+    """
     print("[+] Starting full port scan for UDP (range: 1-65535)")
     FULLUDP = "nmap -Pn -p- -sU -T4 --min-rate=3000 %s" % (ip_address)
     fulludp_results = subprocess.check_output(FULLUDP, shell=True).decode("utf-8")
@@ -66,12 +76,16 @@ def staged_nmap(ip_address):
         if '/udp' in _:
             udp_ports.append(_)
     udp_ports = list(set(udp_ports))
-
     udp_portlist = ",".join([p.rstrip("/udp") for p in udp_ports])
 
     print("[*] UDP full port scan completed")
     print("[*] Total number of ports discovered for UDP: %d" % len(udp_ports))
 
+    """
+    Stage 5: Run Default NSE Scripts + Version Detection Against Ports Found From Stage 5
+
+    """
+    output.append(f"UDP port scan result for {ip_address}:\n")
     if len(udp_ports) > 0:
         print("[+] Starting service enumeration for UDP ports: %s" % udp_portlist)
         ENUMUDP = "nmap -Pn -p '%s' -sU -sC -sV --min-rate=1000 %s" % (udp_portlist, ip_address)
@@ -84,10 +98,9 @@ def staged_nmap(ip_address):
 
         print("[*] Enumeration for UDP ports finished")
         print(enumudp_results)
-
+        output.append(enumudp_results)
     else:
         print("[-] Skipping UDP service enumeration due to no open ports found")
-
 
     print()
     print("[*] Portscan finished.")
@@ -95,9 +108,9 @@ def staged_nmap(ip_address):
     print("  ( Much more features and advaned scan modes will be soon available with alpha! )")
 
 
-def port_scan(host):
+def port_scan(host, output_handle):
     # TODO: add more options that can be used as valid host
-    # (currently only supporting IPv5 address for target)
+    # (currently only supporting IPv4 address for target)
     try:
         socket.inet_aton(host)
         print("[*] Loaded target address: %s" % host)
@@ -105,10 +118,8 @@ def port_scan(host):
         print("[-] Invalid IPv4 address for host")
         sys.exit(1)
 
-
     # this list will come handy for managing multiple active scanners in future updates (alpha)
     jobs = []
-
-    p = Process(target=staged_nmap, args=(host,))
+    p = Process(target=staged_nmap, args=(host,output_handle,))
     jobs.append(p)
     p.start()
