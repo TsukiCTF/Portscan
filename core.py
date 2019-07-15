@@ -104,8 +104,7 @@ def staged_nmap(ip_address, output):
 
     print()
     print("[*] Portscan finished.")
-    print("  ( Thank you for using this tool )")
-    print("  ( Much more features and advaned scan modes will be soon available with alpha! )")
+
 
 
 def port_scan(host, output_handle):
