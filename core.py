@@ -108,16 +108,7 @@ def staged_nmap(ip_address, output):
 
 
 def port_scan(host, output_handle):
-    # TODO: add more options that can be used as valid host
-    # (currently only supporting IPv4 address for target)
-    try:
-        socket.inet_aton(host)
-        print("[*] Loaded target address: %s" % host)
-    except socket.error:
-        print("[-] Invalid IPv4 address for host")
-        sys.exit(1)
-
-    # this list will come handy for managing multiple active scanners in future updates (alpha)
+    # this list will come handy for managing multiple active scanners in future updates
     jobs = []
     p = Process(target=staged_nmap, args=(host,output_handle,))
     jobs.append(p)
