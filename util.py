@@ -30,6 +30,13 @@ class Parser(object):
                             action = "store",
                             help = "save output to a file",
                             dest = "output")
+        
+        parser.add_argument("-m", "--min-rate",
+                            metavar = "NUMBER",
+                            action = "store",
+                            help = "Send packets no slower than <number> per second",
+                            dest = "min_rate",
+                            default=3000)
 
         return parser
 

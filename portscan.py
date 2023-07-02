@@ -29,20 +29,20 @@ def main():
     parser = Parser()
     arguments = parser.run(sys.argv[1:])
 
-    output = FileManager()
+    output_file = FileManager()
 
     if arguments.quiet is False:
         print_banner()
         print_version()
 
     if arguments.output:
-        if output.create(arguments.output) is False:
+        if output_file.create(arguments.output) is False:
             print(f"[!] File name already exists! ({arguments.output})")
             sys.exit(1)
         else:
             print(f"[*] Writing output to {arguments.output}")
 
-    port_scan(arguments.host, output)
+    port_scan(arguments, output_file)
 
 
 if __name__ == '__main__':

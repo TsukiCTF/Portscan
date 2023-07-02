@@ -3,13 +3,17 @@ import socket
 import subprocess
 
 
-def staged_nmap(ip_address, output):
+def staged_nmap(arguments, output_file):
+    # parse args
+    ip_address = arguments.host
+    min_rate = arguments.min_rate
+
     """
     Stage 1: Open Port Scan For Common TCP Ports + Light Version Detection
 
     """
     print("[+] Starting quick nmap scan for %s" % ip_address)
-    QUICKSCAN = "nmap -Pn -sV --version-light --min-rate=3000 %s" % (ip_address)
+    QUICKSCAN = "nmap -Pn -sV --version-light --min-rate=%s %s" % (min_rate, ip_address)
     quickresults = subprocess.check_output(QUICKSCAN, shell=True).decode("utf-8")
 
     # parse ports only
@@ -27,7 +31,7 @@ def staged_nmap(ip_address, output):
 
     """
     print("[+] Starting full port scan for TCP (range: 1-65535)")
-    FULLTCP = "nmap -Pn -p- -T4 --min-rate=3000 %s" % (ip_address)
+    FULLTCP = "nmap -Pn -p- -T4 --min-rate=%s %s" % (min_rate, ip_address)
     fulltcp_results = subprocess.check_output(FULLTCP, shell=True).decode("utf-8")
 
     # parse ports and append
@@ -44,10 +48,10 @@ def staged_nmap(ip_address, output):
     Stage 3: Run Default NSE Scripts + Version Detection Against Ports Found From Stage 2
 
     """
-    output.append(f"TCP port scan result for {ip_address}:\n")
+    output_file.append(f"TCP port scan result for {ip_address}:\n")
     if len(ports) > 0:
         print("[+] Starting service enumeration for TCP ports: %s" % portlist)
-        ENUMTCP = "nmap -Pn -p '%s' -sC -sV --min-rate=1500 %s" % (portlist, ip_address)
+        ENUMTCP = "nmap -Pn -p '%s' -sC -sV --min-rate=%s %s" % (portlist, min_rate, ip_address)
         enumtcp_results = subprocess.check_output(ENUMTCP, shell=True).decode("utf-8")
 
         # parse nmap enum output
@@ -57,8 +61,8 @@ def staged_nmap(ip_address, output):
 
         print("[*] Enumeration for TCP ports finished")
         print(enumtcp_results)
-        output.append(enumtcp_results)
-        output.append("\n\n")
+        output_file.append(enumtcp_results)
+        output_file.append("\n\n")
     else:
         print("[-] Skipping TCP service enumeration due to no open ports found")
 
@@ -67,7 +71,7 @@ def staged_nmap(ip_address, output):
 
     """
     print("[+] Starting full port scan for UDP (range: 1-65535)")
-    FULLUDP = "nmap -Pn -p- -sU -T4 --min-rate=3000 %s" % (ip_address)
+    FULLUDP = "nmap -Pn -p- -sU -T4 --min-rate=%s %s" % (min_rate, ip_address)
     fulludp_results = subprocess.check_output(FULLUDP, shell=True).decode("utf-8")
 
     # parse udp ports
@@ -85,10 +89,10 @@ def staged_nmap(ip_address, output):
     Stage 5: Run Default NSE Scripts + Version Detection Against Ports Found From Stage 5
 
     """
-    output.append(f"UDP port scan result for {ip_address}:\n")
+    output_file.append(f"UDP port scan result for {ip_address}:\n")
     if len(udp_ports) > 0:
         print("[+] Starting service enumeration for UDP ports: %s" % udp_portlist)
-        ENUMUDP = "nmap -Pn -p '%s' -sU -sC -sV --min-rate=1000 %s" % (udp_portlist, ip_address)
+        ENUMUDP = "nmap -Pn -p '%s' -sU -sC -sV --min-rate=%s %s" % (udp_portlist, min_rate, ip_address)
         enumudp_results = subprocess.check_output(ENUMUDP, shell=True).decode("utf-8")
 
         # parse nmap enum output
@@ -98,7 +102,7 @@ def staged_nmap(ip_address, output):
 
         print("[*] Enumeration for UDP ports finished")
         print(enumudp_results)
-        output.append(enumudp_results)
+        output_file.append(enumudp_results)
     else:
         print("[-] Skipping UDP service enumeration due to no open ports found")
 
@@ -106,10 +110,9 @@ def staged_nmap(ip_address, output):
     print("[*] Portscan finished.")
 
 
-
-def port_scan(host, output_handle):
+def port_scan(host, output_file):
     # this list will come handy for managing multiple active scanners in future updates
     jobs = []
-    p = Process(target=staged_nmap, args=(host,output_handle,))
+    p = Process(target=staged_nmap, args=(host,output_file,))
     jobs.append(p)
     p.start()
