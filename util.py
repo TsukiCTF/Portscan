@@ -36,7 +36,14 @@ class Parser(object):
                             action = "store",
                             help = "Send packets no slower than <number> per second",
                             dest = "min_rate",
-                            default=3000)
+                            default=100)
+
+        parser.add_argument("-M", "--max-rate",
+                            metavar = "NUMBER",
+                            action = "store",
+                            help = "Send packets no faster than <number> per second",
+                            dest = "max_rate",
+                            default=300)
 
         return parser
 
